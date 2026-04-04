@@ -1,90 +1,110 @@
-// Aimlock Script with Loading Screen and GUI
+-- Section 1: Declarations 
+local Player = game.Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 
-// Display loading screen
-function showLoadingScreen() {
-    const loadingScreen = document.createElement('div');
-    loadingScreen.style.position = 'fixed';
-    loadingScreen.style.left = '0';
-    loadingScreen.style.top = '0';
-    loadingScreen.style.width = '100%';
-    loadingScreen.style.height = '100%';
-    loadingScreen.style.backgroundColor = 'black';
-    loadingScreen.style.color = 'white';
-    loadingScreen.style.display = 'flex';
-    loadingScreen.style.flexDirection = 'column';
-    loadingScreen.style.justifyContent = 'center';
-    loadingScreen.style.alignItems = 'center';
-    loadingScreen.style.opacity = '0';
-    loadingScreen.style.transition = 'opacity 1s';
-    document.body.appendChild(loadingScreen);
+-- Section 2: Constants 
+local DEFAULT_SENSITIVITY = 5
+local FOV_SIZE = 70
+local VERSION = "1.0"
 
-    const title = document.createElement('h1');
-    title.innerText = 'Made by someoneidk';
-    loadingScreen.appendChild(title);
+-- Section 3: Globals 
+local aimlockEnabled = false
+local sensitivity = DEFAULT_SENSITIVITY
+local targets = {}
 
-    const subtitle = document.createElement('h2');
-    subtitle.innerText = 'Made with AI';
-    loadingScreen.appendChild(subtitle);
+-- Section 4: Utilities 
+local function safeCall(fn, ...) 
+    local success, err = pcall(fn, ...)
+    if not success then 
+        debugLog(err)
+    end
+end
 
-    // Fade in
-    setTimeout(() => { loadingScreen.style.opacity = '1'; }, 100);
-    // Fade out after 4 seconds
-    setTimeout(() => {
-        loadingScreen.style.opacity = '0';
-        setTimeout(() => document.body.removeChild(loadingScreen), 1000);
-        showCriminalityMessage();
-    }, 4000);
-}
+local function debugLog(message) 
+    -- Log messages for debugging purposes
+    print("[DEBUG] ", message)
+end
 
-// Show criminality message
-function showCriminalityMessage() {
-    const message = document.createElement('div');
-    message.innerText = 'Criminality modded is better';
-    message.style.position = 'fixed';
-    message.style.top = '50%';
-    message.style.left = '50%';
-    message.style.transform = 'translate(-50%, -50%)';
-    message.style.color = 'red';
-    document.body.appendChild(message);
+-- Section 5: Loading Screen 
+local loadingScreen = Instance.new("ScreenGui")
+local loadingFrame = Instance.new("Frame", loadingScreen)
+loadingFrame.Size = UDim2.new(0.5, 0, 0.5, 0)
+loadingFrame.Position = UDim2.new(0.25, 0, 0.25, 0)
+loadingFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 
-    setTimeout(() => {
-        message.style.transition = 'opacity 1s';
-        message.style.opacity = '0';
-        setTimeout(() => document.body.removeChild(message), 1000);
-        loadAimlockGUI();
-    }, 2000);
-}
+local loadingBar = Instance.new("Frame", loadingFrame)
+loadingBar.Size = UDim2.new(0, 0, 0.05, 0)
+loadingBar.Position = UDim2.new(0.5, 0, 0.5, 0)
+loadingBar.BackgroundColor3 = Color3.new(0, 1, 0)
 
-// Load the aimlock GUI
-function loadAimlockGUI() {
-    const gui = document.createElement('div');
-    gui.innerHTML = '<h3>Aimlock GUI Loaded</h3>';
-    gui.style.position = 'fixed';
-    gui.style.top = '20%';
-    gui.style.left = '50%';
-    gui.style.transform = 'translate(-50%, -50%)';
-    gui.style.background = 'white';
-    gui.style.padding = '20px';
-    gui.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
-    document.body.appendChild(gui);
-    // Initialize features
-    initializeFeatures(gui);
-}
+local messageLabel = Instance.new("TextLabel", loadingFrame)
+messageLabel.Text = "made by someoneidk\nmade with ai"
+messageLabel.Size = UDim2.new(1, 0, 0.2, 0)
+messageLabel.Position = UDim2.new(0, 0, 0, 0)
+messageLabel.BackgroundTransparency = 1
 
-// Initialize GUI features
-function initializeFeatures(gui) {
-    // Add aimlock features here
-    try {
-        // Sample feature
-        let aimlockActive = false;
-        gui.onclick = () => {
-            aimlockActive = !aimlockActive;
-            console.log(`Aimlock is now ${aimlockActive ? 'active' : 'inactive'}`);
-        };
-    } catch (error) {
-        console.error('Error initializing aimlock features:', error);
-    }
-}
+loadingScreen.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-// Start the script
-showLoadingScreen();
+-- Animate loading bar
+for i = 1, 100 do 
+    wait(0.04) 
+    loadingBar.Size = UDim2.new(i/100, 0, 0.05, 0) 
+end
+
+-- Killed back to nil after loading to free resources
+loadingScreen:Destroy() 
+
+-- Section 6: Main GUI 
+local mainGui = Instance.new("ScreenGui")
+mainGui.Parent = Player:WaitForChild("PlayerGui") 
+
+local toggleButton = Instance.new("TextButton", mainGui)
+
+-- Button properties
+toggleButton.Size = UDim2.new(0.1, 0, 0.05, 0)
+toggleButton.Position = UDim2.new(0.9, 0, 0.9, 0)
+toggleButton.Text = "AIMLOCK"
+
+-- Section 7: Target Detection 
+local function findTargets() 
+    targets = {} 
+    for _, player in pairs(game.Players:GetPlayers()) do 
+        if player ~= Player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then 
+            table.insert(targets, player) 
+        end
+    end
+end
+
+-- Section 8: Aimlock Logic 
+local function aimlock() 
+    if aimlockEnabled and #targets > 0 then 
+        local target = targets[1]
+        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then 
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position) 
+        end
+    end
+end
+
+-- Section 9: Slider Functionality 
+local slider = Instance.new("Slider", mainGui)
+slider.Size = UDim2.new(0.5, 0, 0.1, 0)
+slider.Position = UDim2.new(0.1, 0, 0.8, 0)
+
+slider.Changed:Connect(function() 
+    sensitivity = slider.Value 
+end)
+
+-- Section 10: Event Handlers 
+toggleButton.MouseButton1Down:Connect(function() 
+    aimlockEnabled = not aimlockEnabled 
+    toggleButton.Text = aimlockEnabled and "AIMLOCK ON" or "AIMLOCK OFF" 
+end)
+
+-- Section 11: Main Execution 
+RunService.RenderStepped:Connect(function() 
+    safeCall(findTargets)
+    safeCall(aimlock)
+end) 
