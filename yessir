@@ -1,68 +1,68 @@
--- Mobile-Friendly Aimlock Script
--- This script includes a GUI, FOV system, multi-target detection, and sensitivity control.
+-- Constants for FOV and UI elements
+local DEFAULT_FOV_RADIUS = 60
+local BUTTON_WIDTH = 100
+local BUTTON_HEIGHT = 50
+local SENSITIVITY_MIN = 0
+local SENSITIVITY_MAX = 100
 
-local Players = game:GetService("Players")
+-- UserInputService Declaration (removed duplicate)
 local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
-local UIS = game:GetService("UserInputService")
 
--- User Interface Configuration
-local ScreenGui = Instance.new('ScreenGui')
-local AimlockButton = Instance.new('TextButton')
+-- Function to show loading screen
+local function showLoadingScreen()
+    local title = Instance.new("TextLabel")
+    title.Text = "made by someoneidk"
+    title.Size = UDim2.new(0, 400, 0, 100)
+    title.Position = UDim2.new(0.5, -200, 0.5, -50)
+    title.Parent = game.Players.LocalPlayer.PlayerGui.ScreenGui
 
-ScreenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-ScreenGui.ResetOnSpawn = false
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Text = "made with ai"
+    subtitle.Size = UDim2.new(0, 400, 0, 50)
+    subtitle.Position = UDim2.new(0.5, -200, 0.5, 50)
+    subtitle.Parent = game.Players.LocalPlayer.PlayerGui.ScreenGui
 
-AimlockButton.Size = UDim2.new(0, 200, 0, 50)
-AimlockButton.Position = UDim2.new(0.5, -100, 0.5, -25)
-AimlockButton.Text = "Toggle Aimlock"
-AimlockButton.Parent = ScreenGui
+    wait(3) -- Wait for 3 seconds
 
-local aimlockEnabled = false
-local targets = {}
-
--- Function to detect targets
-local function detectTargets(FieldOfView)
-    local closestTarget = nil
-    local closestDistance = FieldOfView
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local targetPos = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
-            local screenCenter = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)
-            local distance = (Vector2.new(targetPos.X, targetPos.Y) - screenCenter).Magnitude
-            if distance < closestDistance then
-                closestDistance = distance
-                closestTarget = player
-            end
-        end
-    end
-    return closestTarget
+    title.Text = "criminality modded is better"
+    subtitle:Destroy() -- Remove subtitle after transition
 end
 
+-- Function to handle aimlock
+local aimlockEnabled = false
 local function toggleAimlock()
     aimlockEnabled = not aimlockEnabled
+    -- Change button color as visual feedback
 end
 
-AimlockButton.MouseButton1Click:Connect(toggleAimlock)
+-- Function to create sensitivity slider
+local function createSensitivitySlider()
+    local slider = Instance.new("Slider")
+    slider.Min = SENSITIVITY_MIN
+    slider.Max = SENSITIVITY_MAX
+    slider.ValueChanged:Connect(function(newValue)
+        -- Handle sensitivity change
+    end)
+    return slider
+end
 
-UserInputService.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 and aimlockEnabled then
-        local target = detectTargets(100)
-        if target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
-        end
+-- Adjusting performance using ipairs correctly
+local targets = {}
+for index, target in ipairs(targets) do
+    -- Perform operations on each target
+end
+
+-- Error handling for null target checks
+local function checkTarget(target)
+    if target == nil then
+        error("Target is null")
     end
-end)
-
--- Add sensitivity control (1 - 10)
-local sensitivity = 5
-
-function updateSensitivity(newSensitivity)
-    sensitivity = math.clamp(newSensitivity, 1, 10)
 end
 
--- Example of updating the sensitivity
-updateSensitivity(7)
+-- Add GUI toggle visibility
+local function toggleGUIVisibility()
+    -- Logic to toggle GUI visibility
+end
 
--- Multi-target awareness implementation
--- This could be expanded further based on specific project needs
+-- Call to show loading screen
+showLoadingScreen()
