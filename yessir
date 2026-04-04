@@ -1,1 +1,29 @@
+import pyautogui
+import time
 
+class Aimlock:
+    def __init__(self):
+        self.target_color = (255, 0, 0)  # RGB color to lock onto (example: red)
+
+    def find_target(self):
+        # Locate the target on the screen
+        target_location = pyautogui.locateOnScreen('target_image.png')
+        if target_location:
+            return target_location
+        return None
+
+    def aimlock(self):
+        while True:
+            target = self.find_target()
+            if target:
+                x, y = pyautogui.center(target)
+                pyautogui.moveTo(x, y)
+                pyautogui.click()
+            time.sleep(0.1)  # Delay to prevent overwhelming the CPU
+
+if __name__ == '__main__':
+    aimlock = Aimlock()
+    try:
+        aimlock.aimlock()
+    except KeyboardInterrupt:
+        print('Aimlock stopped.')
