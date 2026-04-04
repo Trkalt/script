@@ -1,68 +1,90 @@
--- Constants for FOV and UI elements
-local DEFAULT_FOV_RADIUS = 60
-local BUTTON_WIDTH = 100
-local BUTTON_HEIGHT = 50
-local SENSITIVITY_MIN = 0
-local SENSITIVITY_MAX = 100
+// Aimlock Script with Loading Screen and GUI
 
--- UserInputService Declaration (removed duplicate)
-local UserInputService = game:GetService("UserInputService")
+// Display loading screen
+function showLoadingScreen() {
+    const loadingScreen = document.createElement('div');
+    loadingScreen.style.position = 'fixed';
+    loadingScreen.style.left = '0';
+    loadingScreen.style.top = '0';
+    loadingScreen.style.width = '100%';
+    loadingScreen.style.height = '100%';
+    loadingScreen.style.backgroundColor = 'black';
+    loadingScreen.style.color = 'white';
+    loadingScreen.style.display = 'flex';
+    loadingScreen.style.flexDirection = 'column';
+    loadingScreen.style.justifyContent = 'center';
+    loadingScreen.style.alignItems = 'center';
+    loadingScreen.style.opacity = '0';
+    loadingScreen.style.transition = 'opacity 1s';
+    document.body.appendChild(loadingScreen);
 
--- Function to show loading screen
-local function showLoadingScreen()
-    local title = Instance.new("TextLabel")
-    title.Text = "made by someoneidk"
-    title.Size = UDim2.new(0, 400, 0, 100)
-    title.Position = UDim2.new(0.5, -200, 0.5, -50)
-    title.Parent = game.Players.LocalPlayer.PlayerGui.ScreenGui
+    const title = document.createElement('h1');
+    title.innerText = 'Made by someoneidk';
+    loadingScreen.appendChild(title);
 
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Text = "made with ai"
-    subtitle.Size = UDim2.new(0, 400, 0, 50)
-    subtitle.Position = UDim2.new(0.5, -200, 0.5, 50)
-    subtitle.Parent = game.Players.LocalPlayer.PlayerGui.ScreenGui
+    const subtitle = document.createElement('h2');
+    subtitle.innerText = 'Made with AI';
+    loadingScreen.appendChild(subtitle);
 
-    wait(3) -- Wait for 3 seconds
+    // Fade in
+    setTimeout(() => { loadingScreen.style.opacity = '1'; }, 100);
+    // Fade out after 4 seconds
+    setTimeout(() => {
+        loadingScreen.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(loadingScreen), 1000);
+        showCriminalityMessage();
+    }, 4000);
+}
 
-    title.Text = "criminality modded is better"
-    subtitle:Destroy() -- Remove subtitle after transition
-end
+// Show criminality message
+function showCriminalityMessage() {
+    const message = document.createElement('div');
+    message.innerText = 'Criminality modded is better';
+    message.style.position = 'fixed';
+    message.style.top = '50%';
+    message.style.left = '50%';
+    message.style.transform = 'translate(-50%, -50%)';
+    message.style.color = 'red';
+    document.body.appendChild(message);
 
--- Function to handle aimlock
-local aimlockEnabled = false
-local function toggleAimlock()
-    aimlockEnabled = not aimlockEnabled
-    -- Change button color as visual feedback
-end
+    setTimeout(() => {
+        message.style.transition = 'opacity 1s';
+        message.style.opacity = '0';
+        setTimeout(() => document.body.removeChild(message), 1000);
+        loadAimlockGUI();
+    }, 2000);
+}
 
--- Function to create sensitivity slider
-local function createSensitivitySlider()
-    local slider = Instance.new("Slider")
-    slider.Min = SENSITIVITY_MIN
-    slider.Max = SENSITIVITY_MAX
-    slider.ValueChanged:Connect(function(newValue)
-        -- Handle sensitivity change
-    end)
-    return slider
-end
+// Load the aimlock GUI
+function loadAimlockGUI() {
+    const gui = document.createElement('div');
+    gui.innerHTML = '<h3>Aimlock GUI Loaded</h3>';
+    gui.style.position = 'fixed';
+    gui.style.top = '20%';
+    gui.style.left = '50%';
+    gui.style.transform = 'translate(-50%, -50%)';
+    gui.style.background = 'white';
+    gui.style.padding = '20px';
+    gui.style.boxShadow = '0 0 10px rgba(0,0,0,0.5)';
+    document.body.appendChild(gui);
+    // Initialize features
+    initializeFeatures(gui);
+}
 
--- Adjusting performance using ipairs correctly
-local targets = {}
-for index, target in ipairs(targets) do
-    -- Perform operations on each target
-end
+// Initialize GUI features
+function initializeFeatures(gui) {
+    // Add aimlock features here
+    try {
+        // Sample feature
+        let aimlockActive = false;
+        gui.onclick = () => {
+            aimlockActive = !aimlockActive;
+            console.log(`Aimlock is now ${aimlockActive ? 'active' : 'inactive'}`);
+        };
+    } catch (error) {
+        console.error('Error initializing aimlock features:', error);
+    }
+}
 
--- Error handling for null target checks
-local function checkTarget(target)
-    if target == nil then
-        error("Target is null")
-    end
-end
-
--- Add GUI toggle visibility
-local function toggleGUIVisibility()
-    -- Logic to toggle GUI visibility
-end
-
--- Call to show loading screen
-showLoadingScreen()
+// Start the script
+showLoadingScreen();
