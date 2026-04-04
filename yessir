@@ -1,110 +1,345 @@
--- Section 1: Declarations 
-local Player = game.Players.LocalPlayer
-local Mouse = Player:GetMouse()
-local UIS = game:GetService("UserInputService")
+-- ============================================================
+-- COMPLETE WORKING ROBLOX AIMLOCK SCRIPT
+-- Made by someoneidk | Made with AI
+-- ============================================================
+
+-- SERVICE DECLARATIONS
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Section 2: Constants 
-local DEFAULT_SENSITIVITY = 5
-local FOV_SIZE = 70
-local VERSION = "1.0"
+-- CONSTANTS
+local DEFAULT_FOV = 100
+local SENSITIVITY_MIN = 1
+local SENSITIVITY_MAX = 10
+local LOADING_TIME = 4
 
--- Section 3: Globals 
+-- GLOBAL VARIABLES
 local aimlockEnabled = false
-local sensitivity = DEFAULT_SENSITIVITY
-local targets = {}
+local sensitivity = 5
+local currentTarget = nil
 
--- Section 4: Utilities 
-local function safeCall(fn, ...) 
-    local success, err = pcall(fn, ...)
-    if not success then 
-        debugLog(err)
+-- ============================================================
+-- LOADING SCREEN
+-- ============================================================
+local function createLoadingScreen()
+    local loadingGui = Instance.new("ScreenGui")
+    loadingGui.Name = "LoadingScreen"
+    loadingGui.ResetOnSpawn = false
+    loadingGui.Parent = PlayerGui
+
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BorderSizePixel = 0
+    bg.Parent = loadingGui
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 100)
+    title.Position = UDim2.new(0, 0, 0.35, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "made by someoneidk"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 50
+    title.Font = Enum.Font.GothamBold
+    title.Parent = bg
+
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, 0, 0, 80)
+    subtitle.Position = UDim2.new(0, 0, 0.48, 0)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "made with ai"
+    subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+    subtitle.TextSize = 40
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.Parent = bg
+
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(0, 300, 0, 8)
+    barBg.Position = UDim2.new(0.5, -150, 0.6, 0)
+    barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    barBg.BorderSizePixel = 0
+    barBg.Parent = bg
+
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 0, 0, 8)
+    bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    bar.BorderSizePixel = 0
+    bar.Parent = barBg
+
+    local percent = Instance.new("TextLabel")
+    percent.Size = UDim2.new(0, 80, 0, 30)
+    percent.Position = UDim2.new(0.5, -40, 0.62, 0)
+    percent.BackgroundTransparency = 1
+    percent.Text = "0%"
+    percent.TextColor3 = Color3.fromRGB(0, 255, 0)
+    percent.TextSize = 16
+    percent.Font = Enum.Font.GothamBold
+    percent.Parent = bg
+
+    local startTime = tick()
+    while tick() - startTime < LOADING_TIME do
+        local progress = (tick() - startTime) / LOADING_TIME
+        bar.Size = UDim2.new(progress, 0, 0, 8)
+        percent.Text = math.floor(progress * 100) .. "%"
+        wait(0.01)
     end
+
+    title.Text = "criminality modded is better"
+    subtitle.Text = ""
+    percent.Text = ""
+    wait(2)
+
+    for i = 1, 20 do
+        bg.BackgroundTransparency = i / 20
+        title.TextTransparency = i / 20
+        wait(0.025)
+    end
+
+    loadingGui:Destroy()
 end
 
-local function debugLog(message) 
-    -- Log messages for debugging purposes
-    print("[DEBUG] ", message)
+-- ============================================================
+-- MAIN GUI
+-- ============================================================
+local function createMainGui()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "AimlockGui"
+    gui.ResetOnSpawn = false
+    gui.Parent = PlayerGui
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 350, 0, 380)
+    mainFrame.Position = UDim2.new(0, 20, 0, 20)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = gui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0, 40)
+    titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    titleLabel.BorderSizePixel = 0
+    titleLabel.Text = "AIMLOCK v2.0"
+    titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    titleLabel.TextSize = 20
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Parent = mainFrame
+
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Name = "ToggleButton"
+    toggleBtn.Size = UDim2.new(1, -20, 0, 40)
+    toggleBtn.Position = UDim2.new(0, 10, 0, 50)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.Text = "AIMLOCK: OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.TextSize = 16
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.Parent = mainFrame
+
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = toggleBtn
+
+    local sensLabel = Instance.new("TextLabel")
+    sensLabel.Size = UDim2.new(1, -20, 0, 20)
+    sensLabel.Position = UDim2.new(0, 10, 0, 100)
+    sensLabel.BackgroundTransparency = 1
+    sensLabel.Text = "Sensitivity: " .. sensitivity
+    sensLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sensLabel.TextSize = 14
+    sensLabel.Font = Enum.Font.Gotham
+    sensLabel.Parent = mainFrame
+
+    local sliderBg = Instance.new("Frame")
+    sliderBg.Name = "SliderBg"
+    sliderBg.Size = UDim2.new(1, -20, 0, 6)
+    sliderBg.Position = UDim2.new(0, 10, 0, 130)
+    sliderBg.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    sliderBg.BorderSizePixel = 0
+    sliderBg.Parent = mainFrame
+
+    local knob = Instance.new("TextButton")
+    knob.Name = "SliderKnob"
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.Position = UDim2.new(0.4, -7, -0.5, 0)
+    knob.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    knob.BorderSizePixel = 0
+    knob.Text = ""
+    knob.Parent = sliderBg
+
+    local knobCorner = Instance.new("UICorner")
+    knobCorner.CornerRadius = UDim.new(0, 7)
+    knobCorner.Parent = knob
+
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, -20, 0, 60)
+    statusLabel.Position = UDim2.new(0, 10, 0, 155)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Status: Ready\nTarget: None"
+    statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    statusLabel.TextSize = 12
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextWrapped = true
+    statusLabel.Parent = mainFrame
+
+    local fovLabel = Instance.new("TextLabel")
+    fovLabel.Size = UDim2.new(1, -20, 0, 25)
+    fovLabel.Position = UDim2.new(0, 10, 0, 225)
+    fovLabel.BackgroundTransparency = 1
+    fovLabel.Text = "FOV: " .. DEFAULT_FOV .. " px"
+    fovLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    fovLabel.TextSize = 12
+    fovLabel.Font = Enum.Font.Gotham
+    fovLabel.Parent = mainFrame
+
+    local distLabel = Instance.new("TextLabel")
+    distLabel.Size = UDim2.new(1, -20, 0, 25)
+    distLabel.Position = UDim2.new(0, 10, 0, 255)
+    distLabel.BackgroundTransparency = 1
+    distLabel.Text = "Distance: N/A"
+    distLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    distLabel.TextSize = 12
+    distLabel.Font = Enum.Font.Gotham
+    distLabel.Parent = mainFrame
+
+    local versionLabel = Instance.new("TextLabel")
+    versionLabel.Size = UDim2.new(1, -20, 0, 20)
+    versionLabel.Position = UDim2.new(0, 10, 0, 350)
+    versionLabel.BackgroundTransparency = 1
+    versionLabel.Text = "v2.0 - Fixed"
+    versionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
+    versionLabel.TextSize = 10
+    versionLabel.Font = Enum.Font.Gotham
+    versionLabel.Parent = mainFrame
+
+    return gui, toggleBtn, sensLabel, knob, statusLabel, fovLabel, distLabel, sliderBg
 end
 
--- Section 5: Loading Screen 
-local loadingScreen = Instance.new("ScreenGui")
-local loadingFrame = Instance.new("Frame", loadingScreen)
-loadingFrame.Size = UDim2.new(0.5, 0, 0.5, 0)
-loadingFrame.Position = UDim2.new(0.25, 0, 0.25, 0)
-loadingFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+-- ============================================================
+-- TARGET DETECTION
+-- ============================================================
+local function detectTargets(fovRadius)
+    local closestTarget = nil
+    local closestDistance = fovRadius
+    local dist = 0
 
-local loadingBar = Instance.new("Frame", loadingFrame)
-loadingBar.Size = UDim2.new(0, 0, 0.05, 0)
-loadingBar.Position = UDim2.new(0.5, 0, 0.5, 0)
-loadingBar.BackgroundColor3 = Color3.new(0, 1, 0)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                local targetPos = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
+                local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                local distance = (Vector2.new(targetPos.X, targetPos.Y) - screenCenter).Magnitude
 
-local messageLabel = Instance.new("TextLabel", loadingFrame)
-messageLabel.Text = "made by someoneidk\nmade with ai"
-messageLabel.Size = UDim2.new(1, 0, 0.2, 0)
-messageLabel.Position = UDim2.new(0, 0, 0, 0)
-messageLabel.BackgroundTransparency = 1
-
-loadingScreen.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
--- Animate loading bar
-for i = 1, 100 do 
-    wait(0.04) 
-    loadingBar.Size = UDim2.new(i/100, 0, 0.05, 0) 
-end
-
--- Killed back to nil after loading to free resources
-loadingScreen:Destroy() 
-
--- Section 6: Main GUI 
-local mainGui = Instance.new("ScreenGui")
-mainGui.Parent = Player:WaitForChild("PlayerGui") 
-
-local toggleButton = Instance.new("TextButton", mainGui)
-
--- Button properties
-toggleButton.Size = UDim2.new(0.1, 0, 0.05, 0)
-toggleButton.Position = UDim2.new(0.9, 0, 0.9, 0)
-toggleButton.Text = "AIMLOCK"
-
--- Section 7: Target Detection 
-local function findTargets() 
-    targets = {} 
-    for _, player in pairs(game.Players:GetPlayers()) do 
-        if player ~= Player and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then 
-            table.insert(targets, player) 
+                if distance < closestDistance then
+                    closestDistance = distance
+                    closestTarget = player
+                    dist = distance
+                end
+            end
         end
     end
+
+    return closestTarget, dist
 end
 
--- Section 8: Aimlock Logic 
-local function aimlock() 
-    if aimlockEnabled and #targets > 0 then 
-        local target = targets[1]
-        if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then 
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position) 
-        end
+-- ============================================================
+-- AIMLOCK FUNCTION
+-- ============================================================
+local function aimAtTarget(target)
+    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPos = target.Character.HumanoidRootPart.Position
+        local smoothFactor = 0.05 * (sensitivity / 5)
+        Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), smoothFactor)
     end
 end
 
--- Section 9: Slider Functionality 
-local slider = Instance.new("Slider", mainGui)
-slider.Size = UDim2.new(0.5, 0, 0.1, 0)
-slider.Position = UDim2.new(0.1, 0, 0.8, 0)
+-- ============================================================
+-- SLIDER LOGIC
+-- ============================================================
+local dragging = false
 
-slider.Changed:Connect(function() 
-    sensitivity = slider.Value 
-end)
+local function setupSlider(knob, sliderBg, sensLabel)
+    knob.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
 
--- Section 10: Event Handlers 
-toggleButton.MouseButton1Down:Connect(function() 
-    aimlockEnabled = not aimlockEnabled 
-    toggleButton.Text = aimlockEnabled and "AIMLOCK ON" or "AIMLOCK OFF" 
-end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
 
--- Section 11: Main Execution 
-RunService.RenderStepped:Connect(function() 
-    safeCall(findTargets)
-    safeCall(aimlock)
-end) 
+    RunService.RenderStepped:Connect(function()
+        if dragging then
+            local mouseX = UserInputService:GetMouseLocation().X
+            local sliderX = sliderBg.AbsolutePosition.X
+            local sliderWidth = sliderBg.AbsoluteSize.X
+            local relativeX = math.clamp(mouseX - sliderX, 0, sliderWidth)
+            local ratio = relativeX / sliderWidth
+
+            sensitivity = math.floor(SENSITIVITY_MIN + (ratio * (SENSITIVITY_MAX - SENSITIVITY_MIN)))
+            knob.Position = UDim2.new(ratio, -7, -0.5, 0)
+            sensLabel.Text = "Sensitivity: " .. sensitivity
+        end
+    end)
+end
+
+-- ============================================================
+-- MAIN INITIALIZATION
+-- ============================================================
+local function main()
+    print("[AIMLOCK] Starting script...")
+    
+    createLoadingScreen()
+    wait(1)
+
+    local gui, toggleBtn, sensLabel, knob, statusLabel, fovLabel, distLabel, sliderBg = createMainGui()
+    print("[AIMLOCK] GUI created successfully")
+
+    setupSlider(knob, sliderBg, sensLabel)
+
+    toggleBtn.MouseButton1Click:Connect(function()
+        aimlockEnabled = not aimlockEnabled
+
+        if aimlockEnabled then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+            toggleBtn.Text = "AIMLOCK: ON"
+            statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            toggleBtn.Text = "AIMLOCK: OFF"
+            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            statusLabel.Text = "Status: Ready\nTarget: None"
+            distLabel.Text = "Distance: N/A"
+        end
+    end)
+
+    RunService.RenderStepped:Connect(function()
+        if aimlockEnabled then
+            local target, distance = detectTargets(DEFAULT_FOV)
+            currentTarget = target
+
+            if currentTarget then
+                aimAtTarget(currentTarget)
+                statusLabel.Text = "Status: Active\nTarget: " .. currentTarget.Name
+                distLabel.Text = "Distance: " .. math.floor(distance) .. " px"
+            else
+                statusLabel.Text = "Status: Active\nTarget: Searching..."
+                distLabel.Text = "Distance: N/A"
+            end
+        end
+    end)
+
+    print("[AIMLOCK] Script fully loaded and ready!")
+end
+
+main()
