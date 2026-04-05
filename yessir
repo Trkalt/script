@@ -1,6 +1,6 @@
 -- ============================================================
--- COMPLETE WORKING ROBLOX AIMLOCK SCRIPT
--- Made by someoneidk | Made with AI
+-- IMPROVED ROBLOX AIMLOCK SCRIPT V3.0
+-- Number Input + FOV Circle + ESP + Wall Detection
 -- ============================================================
 
 -- SERVICE DECLARATIONS
@@ -15,12 +15,15 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local DEFAULT_FOV = 100
 local SENSITIVITY_MIN = 1
 local SENSITIVITY_MAX = 10
+local WALL_CHECK_DISTANCE = 500
 local LOADING_TIME = 4
 
 -- GLOBAL VARIABLES
 local aimlockEnabled = false
 local sensitivity = 5
+local fovValue = DEFAULT_FOV
 local currentTarget = nil
+local fovCircleGui = nil
 
 -- ============================================================
 -- LOADING SCREEN
@@ -41,21 +44,11 @@ local function createLoadingScreen()
     title.Size = UDim2.new(1, 0, 0, 100)
     title.Position = UDim2.new(0, 0, 0.35, 0)
     title.BackgroundTransparency = 1
-    title.Text = "made by someoneidk"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = "AIMLOCK v3.0 - IMPROVED"
+    title.TextColor3 = Color3.fromRGB(0, 255, 0)
     title.TextSize = 50
     title.Font = Enum.Font.GothamBold
     title.Parent = bg
-
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(1, 0, 0, 80)
-    subtitle.Position = UDim2.new(0, 0, 0.48, 0)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "made with ai"
-    subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-    subtitle.TextSize = 40
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.Parent = bg
 
     local barBg = Instance.new("Frame")
     barBg.Size = UDim2.new(0, 300, 0, 8)
@@ -70,28 +63,12 @@ local function createLoadingScreen()
     bar.BorderSizePixel = 0
     bar.Parent = barBg
 
-    local percent = Instance.new("TextLabel")
-    percent.Size = UDim2.new(0, 80, 0, 30)
-    percent.Position = UDim2.new(0.5, -40, 0.62, 0)
-    percent.BackgroundTransparency = 1
-    percent.Text = "0%"
-    percent.TextColor3 = Color3.fromRGB(0, 255, 0)
-    percent.TextSize = 16
-    percent.Font = Enum.Font.GothamBold
-    percent.Parent = bg
-
     local startTime = tick()
     while tick() - startTime < LOADING_TIME do
         local progress = (tick() - startTime) / LOADING_TIME
         bar.Size = UDim2.new(progress, 0, 0, 8)
-        percent.Text = math.floor(progress * 100) .. "%"
         wait(0.01)
     end
-
-    title.Text = "criminality modded is better"
-    subtitle.Text = ""
-    percent.Text = ""
-    wait(2)
 
     for i = 1, 20 do
         bg.BackgroundTransparency = i / 20
@@ -100,6 +77,42 @@ local function createLoadingScreen()
     end
 
     loadingGui:Destroy()
+end
+
+-- ============================================================
+-- FOV CIRCLE VISUALIZATION
+-- ============================================================
+local function createFOVCircle()
+    local circle = Instance.new("ScreenGui")
+    circle.Name = "FOVCircle"
+    circle.ResetOnSpawn = false
+    circle.Parent = PlayerGui
+
+    local circleFrame = Instance.new("Frame")
+    circleFrame.Name = "CircleFrame"
+    circleFrame.Size = UDim2.new(0, fovValue * 2, 0, fovValue * 2)
+    circleFrame.Position = UDim2.new(0.5, -fovValue, 0.5, -fovValue)
+    circleFrame.BackgroundTransparency = 1
+    circleFrame.BorderSizePixel = 0
+    circleFrame.Parent = circle
+
+    local circleImage = Instance.new("ImageLabel")
+    circleImage.Name = "CircleImage"
+    circleImage.Size = UDim2.new(1, 0, 1, 0)
+    circleImage.BackgroundTransparency = 1
+    circleImage.BorderSizePixel = 0
+    circleImage.Parent = circleFrame
+
+    local cornerRadius = Instance.new("UICorner")
+    cornerRadius.CornerRadius = UDim.new(1, 0)
+    cornerRadius.Parent = circleFrame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(0, 255, 0)
+    stroke.Thickness = 2
+    stroke.Parent = circleFrame
+
+    return circle, circleFrame
 end
 
 -- ============================================================
@@ -113,7 +126,7 @@ local function createMainGui()
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 350, 0, 380)
+    mainFrame.Size = UDim2.new(0, 350, 0, 450)
     mainFrame.Position = UDim2.new(0, 20, 0, 20)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     mainFrame.BorderSizePixel = 0
@@ -127,7 +140,7 @@ local function createMainGui()
     titleLabel.Size = UDim2.new(1, 0, 0, 40)
     titleLabel.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     titleLabel.BorderSizePixel = 0
-    titleLabel.Text = "AIMLOCK v2.0"
+    titleLabel.Text = "AIMLOCK v3.0"
     titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     titleLabel.TextSize = 20
     titleLabel.Font = Enum.Font.GothamBold
@@ -149,6 +162,7 @@ local function createMainGui()
     btnCorner.CornerRadius = UDim.new(0, 6)
     btnCorner.Parent = toggleBtn
 
+    -- SENSITIVITY INPUT (Number)
     local sensLabel = Instance.new("TextLabel")
     sensLabel.Size = UDim2.new(1, -20, 0, 20)
     sensLabel.Position = UDim2.new(0, 10, 0, 100)
@@ -159,51 +173,63 @@ local function createMainGui()
     sensLabel.Font = Enum.Font.Gotham
     sensLabel.Parent = mainFrame
 
-    local sliderBg = Instance.new("Frame")
-    sliderBg.Name = "SliderBg"
-    sliderBg.Size = UDim2.new(1, -20, 0, 6)
-    sliderBg.Position = UDim2.new(0, 10, 0, 130)
-    sliderBg.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    sliderBg.BorderSizePixel = 0
-    sliderBg.Parent = mainFrame
+    local sensInputBox = Instance.new("TextBox")
+    sensInputBox.Name = "SensInputBox"
+    sensInputBox.Size = UDim2.new(1, -20, 0, 30)
+    sensInputBox.Position = UDim2.new(0, 10, 0, 125)
+    sensInputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    sensInputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sensInputBox.Text = tostring(sensitivity)
+    sensInputBox.TextSize = 14
+    sensInputBox.PlaceholderText = "1-10"
+    sensInputBox.BorderSizePixel = 0
+    sensInputBox.Parent = mainFrame
 
-    local knob = Instance.new("TextButton")
-    knob.Name = "SliderKnob"
-    knob.Size = UDim2.new(0, 14, 0, 14)
-    knob.Position = UDim2.new(0.4, -7, -0.5, 0)
-    knob.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    knob.BorderSizePixel = 0
-    knob.Text = ""
-    knob.Parent = sliderBg
+    local sensCorner = Instance.new("UICorner")
+    sensCorner.CornerRadius = UDim.new(0, 6)
+    sensCorner.Parent = sensInputBox
 
-    local knobCorner = Instance.new("UICorner")
-    knobCorner.CornerRadius = UDim.new(0, 7)
-    knobCorner.Parent = knob
+    -- FOV INPUT (Number)
+    local fovLabel = Instance.new("TextLabel")
+    fovLabel.Size = UDim2.new(1, -20, 0, 20)
+    fovLabel.Position = UDim2.new(0, 10, 0, 165)
+    fovLabel.BackgroundTransparency = 1
+    fovLabel.Text = "FOV: " .. fovValue .. " px"
+    fovLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovLabel.TextSize = 14
+    fovLabel.Font = Enum.Font.Gotham
+    fovLabel.Parent = mainFrame
+
+    local fovInputBox = Instance.new("TextBox")
+    fovInputBox.Name = "FovInputBox"
+    fovInputBox.Size = UDim2.new(1, -20, 0, 30)
+    fovInputBox.Position = UDim2.new(0, 10, 0, 190)
+    fovInputBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    fovInputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    fovInputBox.Text = tostring(fovValue)
+    fovInputBox.TextSize = 14
+    fovInputBox.PlaceholderText = "50-300"
+    fovInputBox.BorderSizePixel = 0
+    fovInputBox.Parent = mainFrame
+
+    local fovCorner = Instance.new("UICorner")
+    fovCorner.CornerRadius = UDim.new(0, 6)
+    fovCorner.Parent = fovInputBox
 
     local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(1, -20, 0, 60)
-    statusLabel.Position = UDim2.new(0, 10, 0, 155)
+    statusLabel.Size = UDim2.new(1, -20, 0, 80)
+    statusLabel.Position = UDim2.new(0, 10, 0, 235)
     statusLabel.BackgroundTransparency = 1
-    statusLabel.Text = "Status: Ready\nTarget: None"
+    statusLabel.Text = "Status: Ready\nTarget: None\nWall Check: OK"
     statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     statusLabel.TextSize = 12
     statusLabel.Font = Enum.Font.Gotham
     statusLabel.TextWrapped = true
     statusLabel.Parent = mainFrame
 
-    local fovLabel = Instance.new("TextLabel")
-    fovLabel.Size = UDim2.new(1, -20, 0, 25)
-    fovLabel.Position = UDim2.new(0, 10, 0, 225)
-    fovLabel.BackgroundTransparency = 1
-    fovLabel.Text = "FOV: " .. DEFAULT_FOV .. " px"
-    fovLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
-    fovLabel.TextSize = 12
-    fovLabel.Font = Enum.Font.Gotham
-    fovLabel.Parent = mainFrame
-
     local distLabel = Instance.new("TextLabel")
     distLabel.Size = UDim2.new(1, -20, 0, 25)
-    distLabel.Position = UDim2.new(0, 10, 0, 255)
+    distLabel.Position = UDim2.new(0, 10, 0, 325)
     distLabel.BackgroundTransparency = 1
     distLabel.Text = "Distance: N/A"
     distLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -211,17 +237,73 @@ local function createMainGui()
     distLabel.Font = Enum.Font.Gotham
     distLabel.Parent = mainFrame
 
+    local espLabel = Instance.new("TextLabel")
+    espLabel.Size = UDim2.new(1, -20, 0, 25)
+    espLabel.Position = UDim2.new(0, 10, 0, 355)
+    espLabel.BackgroundTransparency = 1
+    espLabel.Text = "ESP: Inactive"
+    espLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    espLabel.TextSize = 12
+    espLabel.Font = Enum.Font.Gotham
+    espLabel.Parent = mainFrame
+
     local versionLabel = Instance.new("TextLabel")
     versionLabel.Size = UDim2.new(1, -20, 0, 20)
-    versionLabel.Position = UDim2.new(0, 10, 0, 350)
+    versionLabel.Position = UDim2.new(0, 10, 0, 420)
     versionLabel.BackgroundTransparency = 1
-    versionLabel.Text = "v2.0 - Fixed"
+    versionLabel.Text = "v3.0 - Number Input + FOV Circle + ESP"
     versionLabel.TextColor3 = Color3.fromRGB(100, 100, 100)
     versionLabel.TextSize = 10
     versionLabel.Font = Enum.Font.Gotham
     versionLabel.Parent = mainFrame
 
-    return gui, toggleBtn, sensLabel, knob, statusLabel, fovLabel, distLabel, sliderBg
+    return gui, toggleBtn, sensLabel, sensInputBox, fovLabel, fovInputBox, statusLabel, distLabel, espLabel
+end
+
+-- ============================================================
+-- WALL DETECTION (Raycasting)
+-- ============================================================
+local function isTargetVisible(targetPos)
+    local cameraPos = Camera.CFrame.Position
+    local direction = (targetPos - cameraPos).Unit
+    local distance = (targetPos - cameraPos).Magnitude
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+
+    local result = workspace:Raycast(cameraPos, direction * distance, raycastParams)
+
+    if result then
+        return false -- Wall detected, target not visible
+    end
+    return true -- Target is visible
+end
+
+-- ============================================================
+-- ESP SYSTEM
+-- ============================================================
+local function updateESP()
+    local espTargets = {}
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if player.Character:FindFirstChild("Humanoid") and player.Character.Humanoid.Health > 0 then
+                local targetPos = Camera:WorldToScreenPoint(player.Character.HumanoidRootPart.Position)
+                local worldDistance = (player.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude
+                
+                if isTargetVisible(player.Character.HumanoidRootPart.Position) then
+                    table.insert(espTargets, {
+                        player = player,
+                        screenPos = targetPos,
+                        distance = worldDistance
+                    })
+                end
+            end
+        end
+    end
+    
+    return espTargets
 end
 
 -- ============================================================
@@ -239,10 +321,11 @@ local function detectTargets(fovRadius)
                 local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
                 local distance = (Vector2.new(targetPos.X, targetPos.Y) - screenCenter).Magnitude
 
-                if distance < closestDistance then
+                -- Check if visible (not behind wall)
+                if isTargetVisible(player.Character.HumanoidRootPart.Position) and distance < closestDistance then
                     closestDistance = distance
                     closestTarget = player
-                    dist = distance
+                    dist = (player.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude
                 end
             end
         end
@@ -263,49 +346,43 @@ local function aimAtTarget(target)
 end
 
 -- ============================================================
--- SLIDER LOGIC
--- ============================================================
-local dragging = false
-
-local function setupSlider(knob, sliderBg, sensLabel)
-    knob.MouseButton1Down:Connect(function()
-        dragging = true
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if dragging then
-            local mouseX = UserInputService:GetMouseLocation().X
-            local sliderX = sliderBg.AbsolutePosition.X
-            local sliderWidth = sliderBg.AbsoluteSize.X
-            local relativeX = math.clamp(mouseX - sliderX, 0, sliderWidth)
-            local ratio = relativeX / sliderWidth
-
-            sensitivity = math.floor(SENSITIVITY_MIN + (ratio * (SENSITIVITY_MAX - SENSITIVITY_MIN)))
-            knob.Position = UDim2.new(ratio, -7, -0.5, 0)
-            sensLabel.Text = "Sensitivity: " .. sensitivity
-        end
-    end)
-end
-
--- ============================================================
 -- MAIN INITIALIZATION
 -- ============================================================
 local function main()
-    print("[AIMLOCK] Starting script...")
+    print("[AIMLOCK v3.0] Starting script...")
     
     createLoadingScreen()
     wait(1)
 
-    local gui, toggleBtn, sensLabel, knob, statusLabel, fovLabel, distLabel, sliderBg = createMainGui()
-    print("[AIMLOCK] GUI created successfully")
+    local gui, toggleBtn, sensLabel, sensInputBox, fovLabel, fovInputBox, statusLabel, distLabel, espLabel = createMainGui()
+    local fovCircleGui, circleFrame = createFOVCircle()
+    print("[AIMLOCK v3.0] GUI created successfully")
 
-    setupSlider(knob, sliderBg, sensLabel)
+    -- Sensitivity Input Handling
+    sensInputBox.FocusLost:Connect(function()
+        local value = tonumber(sensInputBox.Text)
+        if value and value >= SENSITIVITY_MIN and value <= SENSITIVITY_MAX then
+            sensitivity = value
+            sensLabel.Text = "Sensitivity: " .. sensitivity
+            sensInputBox.Text = tostring(sensitivity)
+        else
+            sensInputBox.Text = tostring(sensitivity)
+        end
+    end)
+
+    -- FOV Input Handling
+    fovInputBox.FocusLost:Connect(function()
+        local value = tonumber(fovInputBox.Text)
+        if value and value >= 50 and value <= 300 then
+            fovValue = value
+            fovLabel.Text = "FOV: " .. fovValue .. " px"
+            fovInputBox.Text = tostring(fovValue)
+            circleFrame.Size = UDim2.new(0, fovValue * 2, 0, fovValue * 2)
+            circleFrame.Position = UDim2.new(0.5, -fovValue, 0.5, -fovValue)
+        else
+            fovInputBox.Text = tostring(fovValue)
+        end
+    end)
 
     toggleBtn.MouseButton1Click:Connect(function()
         aimlockEnabled = not aimlockEnabled
@@ -318,28 +395,35 @@ local function main()
             toggleBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
             toggleBtn.Text = "AIMLOCK: OFF"
             statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-            statusLabel.Text = "Status: Ready\nTarget: None"
+            statusLabel.Text = "Status: Ready\nTarget: None\nWall Check: OK"
             distLabel.Text = "Distance: N/A"
+            espLabel.Text = "ESP: Inactive"
         end
     end)
 
     RunService.RenderStepped:Connect(function()
+        -- Update FOV Circle Position
+        circleFrame.Position = UDim2.new(0.5, -fovValue, 0.5, -fovValue)
+
         if aimlockEnabled then
-            local target, distance = detectTargets(DEFAULT_FOV)
+            local target, distance = detectTargets(fovValue)
             currentTarget = target
+            
+            local espTargets = updateESP()
+            espLabel.Text = "ESP: " .. #espTargets .. " targets visible"
 
             if currentTarget then
                 aimAtTarget(currentTarget)
-                statusLabel.Text = "Status: Active\nTarget: " .. currentTarget.Name
-                distLabel.Text = "Distance: " .. math.floor(distance) .. " px"
+                statusLabel.Text = "Status: Active\nTarget: " .. currentTarget.Name .. "\nWall Check: PASSED"
+                distLabel.Text = "Distance: " .. math.floor(distance) .. " studs"
             else
-                statusLabel.Text = "Status: Active\nTarget: Searching..."
+                statusLabel.Text = "Status: Active\nTarget: Searching...\nWall Check: OK"
                 distLabel.Text = "Distance: N/A"
             end
         end
     end)
 
-    print("[AIMLOCK] Script fully loaded and ready!")
+    print("[AIMLOCK v3.0] Script fully loaded and ready!")
 end
 
 main()
